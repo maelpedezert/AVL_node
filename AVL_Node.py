@@ -1,128 +1,228 @@
-### GLobal var ###
-BALANCE = 1
-HEIGHT = 0
-NB_ROT = 0
-
-### Global func ###
-def reset_nb_rot():
-    global NB_ROT
-    NB_ROT = 0
-
-def increment_nb_rot():
-    global NB_ROT
-    NB_ROT += 1
-
-### CLass AVL_Node ###
 class AVL_Node:
-    def __init__(self, value):
-        self._value = value
-        self._left = None
-        self._right = None
-        self._balance = 0
+	def __init__(self, value):
+		self.value = value
+		self.left = None
+		self.right = None
+		self.balance = 0
 
-    ### Insertion ###
-    def insert(self, val):
-        if not self._value:
-            self._value = AVL_Node(val)
-        return self.insert_rec(val)[0]
+	def append(self, value):
+	#Simply append a value to the tree
+		if value < self.value:
+			if self.left is None:
+				self.left = AVL_Node(value)
+			else:
+				self.left.append(value)
+		elif value > self.value:
+			if self.right is None:
+				self.right = AVL_Node(value)
+			else:
+				self.right.append(value)
 
-    def insert_rec(self, val):
-        height = self.height_balance(HEIGHT)
-        root = self
+	def computeBalance(self):
+		if self.isLeaf():
+			return 0
+		if self.left is not None and self.right is not None:
+			return self.left.getHeight() - self.right.getHeight()
+		elif self.left is not None:
+			return 1 + self.left.getHeight()
+		else:
+			return -1 - self.right.getHeight()
 
-        if val > self._value:
-            if self._right:
-                self._right = self._right.insert(val)
-            else:
-                if not self._right:
-                    height += 1
-                self._right = AVL_Node(val)
-        if val < self._value:
-            if self._left:
-                self._left = self._left.insert(val)
-            else:
-                if not self._right:
-                    height += 1
-                self._left = AVL_Node(val)
+	def balanceChildren(self):
+		if self.left is not None:
+			self.left.balanceChildren()
+		if self.right is not None:
+			self.right.balanceChildren()
+		if self.left is not None and self.left.isSimplyLeftUnbalanced():
+			self.left = self.left.simpleRightRotation()
+		if self.left is not None and self.left.isSimplyRightUnbalanced():
+			self.left = self.left.simpleLeftRotation()
+		if self.right is not None and self.right.isSimplyLeftUnbalanced():
+			self.right = self.right.simpleRightRotation()
+		if self.right is not None and self.right.isSimplyRightUnbalanced():
+			self.right = self.right.simpleLeftRotation()
 
-        self.height_balance(BALANCE)
-        if self._balance <= 1 and self._balance >= -1:
-            return root, height
-        else:
-            return self.rotation(val)
-    
-    ### Rotations ###
-    def rotation(self, val):
-        height = 0
-        if self._balance > 1:
-            if val > self._left._value:
-                self._left = self._left.rot_left()
-                return self.rot_right(), height
-            else:
-                return self.rot_right(), height
-        if self._balance < -1:
-            if val < self._right._value:
-                self._right = self._right.rot_right()
-                return self.rot_left(), height
-            else:
-                return self.rot_left(), height
-        
+	def balanceRoot(self):
+		if self.isSimplyLeftUnbalanced():	
+			return self.simpleRightRotation()
+		if self.isSimplyRightUnbalanced():	
+			return self.simpleLeftRotation()
+		if self.isDifferentlyLeftUnbalanced():	
+			return self.differentRightRotation()
+		if self.isDifferentlyRightUnbalanced():	
+			return self.differentLeftRotation()
+		return self
+	def isLeaf(self):
+		if self.left is None and self.right is None:
+			return True
+		return False
 
-    def rot_left(self):
-        root = self
-        tmp = None
+	def getHeight(self):
+		if self.isLeaf():
+			return 0
+		leftHeight = 0
+		rightHeight = 0
+		if self.left is not None:
+			leftHeight = self.left.getHeight()
+		if self.right is not None:
+			rightHeight = self.right.getHeight()
+		return max(leftHeight,rightHeight) + 1
 
-        if self._right:
-            tmp = self._right._left if self._right._left else self
-            root = self._right
-            self._right = tmp
-        root._left = self
-        self._balance = 0
-        increment_nb_rot()
-        return root
+	def insert(self, value):
+		#Go Left
+		if value <= self.value:
+			if self.left == None:
+				self.left = AVL_Node(value)
+			else:
+				self.left.insert(value)
+			self.balance += 1
+			if self.isSimplyLeftUnbalanced():
+				newArbre = self.simpleRightRotation()
+			else:
+				newArbre = self
+			if self.left is not None and self.left.isSimplyLeftUnbalanced():
+				self.left = self.left.simpleRightRotation()
+			return newArbre
+		#Go Right
+		else:
+			if self.right == None:
+				self.right = AVL_Node(value)
+			else:
+				self.right.insert(value)
+			self.balance -= 1
+			if self.isSimplyRightUnbalanced():
+				newArbre = self.simpleLeftRotation()
+			else:
+				newArbre = self
+			if self.right is not None and self.right.isSimplyLeftUnbalanced():
+				self.right = self.right.simpleRightRotation()
+			return newArbre
+
+	
+
+	def simpleLeftRotation(self):
+		newRoot = self.right
+		self.right = self.right.left
+		newRoot.left = self
+		return newRoot
+
+	def simpleRightRotation(self):
+		newRoot = self.left
+		self.left = self.left.right
+		newRoot.right = self
+		return newRoot
+
+	def differentRightRotation(self):
+		formerLeftRightRight = self.left.right.right
+		formerLeftRightLeft = self.left.right.left
+		newRoot = self.left.right
+		newRoot.right = self
+		newRoot.left = self.left
+		newRoot.right.left = formerLeftRightRight
+		newRoot.left.right = formerLeftRightLeft
+		return newRoot
+
+	def differentLeftRotation(self):
+		formerLeftRightRight = self.left.right.right
+		formerLeftRightLeft = self.left.right.left
+		newRoot = self.left.right
+		newRoot.right = self
+		newRoot.left = self.left
+		newRoot.right.left = formerLeftRightRight
+		newRoot.left.right = formerLeftRightLeft
+		return newRoot
+
+	def delete(self, value):
+		if self.isLeaf():
+			if self.value != value:
+				return self
+			else:
+				return None
+		else:
+		#Go left
+			if value < self.value:
+				if self.left is not None:
+					self.left.delete(value)
+				else:
+					return self
+		#Go Right
+			if value > self.value:
+				if self.right is not None:
+					self.right.delete(value)
+				else:
+					return self
+		#Delete
+			if value == self.value:
+				if self.right is None:
+					return self.left
+				if self.left is None:
+					return self.right
+				self.value = self.getSuccessor().value
+				return self
+
+	def getSuccessor(self):
+		child = self.right
+		while child.left is not None:
+			child = child.left
+		return child
+		
+		
+				
+			
+
+	def printTree(self, level=0):
+		print(level*" " + str(self.value) + "(" + str(self.computeBalance()) + ")")
+		if self.left != None:
+			self.left.printTree(level + 1)
+		if self.right != None:
+			self.right.printTree(level + 1)
+
+def choose():
+	choice = int(input("type a number, q to quit"))
+	if choice == "q":
+		exit()
+	else:
+		return int(choice)
+
+def menu():
+	choice = input("a to add, d to delete, q to quit")
+	if choice == "q":
+		exit()
+	else:
+		return choice
 
 
-    def rot_right(self):
-        root = self
-        tmp = None
-
-        if self._left:
-            tmp = self._left._right if self._left._right else self
-            root = self._left
-            self._left = tmp
-        root._right = self
-        self._balance = 0
-        increment_nb_rot()
-        return root
-
-
-    ### Height & Balance ###
-    def height_balance(self, param):
-        right_height = 0
-        if self._right:
-            right_height = self._right.height_balance(HEIGHT)
-        left_height = 0
-        if self._left:
-            left_height = self._left.height_balance(HEIGHT)
-        if param == HEIGHT:
-            return 1 + max(left_height, right_height)
-        if param == BALANCE:
-            self._balance = left_height - right_height
-        if not param:
-            print("ERR -height_balance- param is missing")
-
-
-    ### Print Tree ###
-    def printTree(self):
-        print("")
-        self.printTree_rec()
-
-    def printTree_rec(self):
-        if self._left:
-            self._left.printTree_rec()
-        print(self._value)
-        if self._right:
-            self._right.printTree_rec()
+value = choose()
+arbre = AVL_Node(value)
+arbre.printTree()
+while(True):
+	menuChoice = menu()
+	while menuChoice not in ["a","d"]:
+		menuChoice = menu()
+	if menuChoice == "a":
+		value = choose()
+		arbre.append(value)
+		arbre = arbre.balanceRoot()
+		arbre.balanceChildren()
+		arbre.printTree()
+	elif menuChoice == "d":
+		value = choose()
+		arbre.delete(value)
+		arbre = arbre.balanceRoot()
+		arbre.balanceChildren()
+		arbre.printTree()
+for i in range(1,10):
+	value = choose()
+	arbre.append(value)
+	arbre = arbre.balanceRoot()
+	arbre.balanceChildren()
+	arbre.printTree()
+choice = int(input("type a number to DELETE, q to quit"))
+arbre.delete(choice)
+arbre = arbre.balanceRoot()
+arbre.balanceChildren()
+arbre.printTree()
+quit()
 
 
 
